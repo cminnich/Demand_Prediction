@@ -1,0 +1,73 @@
+{% extends "layout.html" %}
+{% block body %}
+
+
+  {% if session.logged_in %}
+    <form action="{{ url_for('read_json') }}" class=basicform>
+      <dl>
+        <dt>Read Client Login data from *.json file (Appends to existing):
+          <dd><input type=text size=50 name=json_filename value=uber_demand_prediction_challenge.json>
+          <dd><input type=submit name='Submit' value='Add File'>
+        <dt><br>
+        <dt>Enter Client Login data manually (Appends to existing):
+          <dd>Timestamp [yyyy-hh-mmThh:mm:ss]:
+          <dd><input type=text size=25 name=client_login_time>
+          <dd><input type=submit name='Submit' value='Add Entry'>
+      </dl>
+    </form>
+    <form action="{{ url_for('add_outlier') }}" class=basicform>
+      <dl>
+        <dt>Load Predetermined Outliers: <input type=submit name='Submit' value='Load Outliers'>
+        <dt><br>
+        <dt>Enter Outliers Manually:
+          <dd>Timestamp [yyyy-hh-mmThh]:<input type=text size=28 name=outlier_id>
+          <dd>Reason:<input type=text size=28 name=reason>
+          <dd><input type=submit name='Submit' value='Custom Outlier'>
+      </dl>
+    </form>
+    <form action="{{ url_for('analysis_plots') }}" class=basicform>
+      <dl>
+        <dt>Generate Analysis Plots: <input type=submit value=Plot>
+      </dl>
+    </form>
+    <form action="{{ url_for('update_prediction') }}" class=basicform>
+      <dl>
+        <dt>Update Prediction: <input type=submit value=Predict>
+      </dl>
+    </form>
+    <form action="{{ url_for('write_csv') }}" class=basicform>
+      <dl>
+        <dt>Write Predictions to CSV file: <input type=submit value=CSV>
+      </dl>
+    </form>
+    <form action="{{ url_for('clear_loaded_db') }}" class=basicform>
+      <dl>
+        <dt>Clear Database: <input type=submit value=CLEAR>
+      </dl>
+    </form>
+  {% endif %}
+  
+  
+  {% if show_db %}
+  <div class=predsum>
+    <h2>Prediction Summary</h2>
+    <ul class=entries>
+    {% for entry in entries %}
+      <li>{{ entry.id|safe }}, {{ "{:.2f}".format(entry.num_logins)|safe }},
+    {% else %}
+      <li><em>No predictions in database.</em>
+    {% endfor %}
+    </ul>
+    <h2>Client Login History</h2>
+    <ul class=entries>
+    {% for entry in history %}
+      <li>{{ entry.id|safe }}, {{ "{:.2f}".format(entry.num_logins)|safe }},
+    {% else %}
+      <li><em>No historic login data in database.</em>
+    {% endfor %}
+    </ul>
+    </ul>
+  </div>
+  {% endif %}
+  
+{% endblock %}

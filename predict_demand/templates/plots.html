@@ -1,0 +1,63 @@
+{% extends "layout.html" %}
+{% block body %}
+
+
+  <img src="predict_demand/plots/WeekdayHour.png" />
+  {% if session.logged_in %}
+    <form action="{{ url_for('clear_loaded_db') }}" method=post class=basicform>
+      <dl>
+        <dt>Clear Database:
+          <dd><input type=submit value=CLEAR>
+      </dl>
+    </form>
+    <form action="{{ url_for('read_json') }}" method=post class=basicform>
+      <dl>
+        <dt>Read Client Login data from *.json file:
+          <dd><input type=text size=50 name=json_filename value=uber_demand_prediction_challenge.json>
+          <dd><input type=submit value=Load>
+      </dl>
+    </form>
+    <form action="{{ url_for('analysis_plots') }}" class=basicform>
+      <dl>
+        <dt>Run Analysis and Save Plots:
+          <dd><input type=submit value=Plot>
+      </dl>
+    </form>
+    <form action="{{ url_for('update_prediction') }}" class=basicform>
+      <label for="RunPrediction">Update Prediction: </label>
+      <input id="RunPrediction" name="RunPrediction" type="submit" value="Predict" />
+    </form>
+    <form action="{{ url_for('add_outlier') }}" method=post class=basicform>
+      <dl>
+        <dt>Enter outlier timestamp:
+          <dd>Timestamp [yyyy-hh-mmThh]:<input type=text size=28 name=outlier_id>
+          <dd>Reason:<input type=text size=28 name=reason>
+          <dd><input type=submit value=Mark>
+      </dl>
+    </form>
+  {% endif %}
+  
+  
+  {% if show_db %}
+  <div class=predsum>
+    <h2>Prediction Summary</h2>
+    <ul class=entries>
+    {% for entry in entries %}
+      <li>{{ entry.id|safe }}, {{ entry.num_logins|safe }},
+    {% else %}
+      <li><em>No predictions in database.</em>
+    {% endfor %}
+    </ul>
+    <h2>Client Login History</h2>
+    <ul class=entries>
+    {% for entry in history %}
+      <li>{{ entry.id|safe }}, {{ entry.num_logins|safe }},
+    {% else %}
+      <li><em>No historic login data in database.</em>
+    {% endfor %}
+    </ul>
+    </ul>
+  </div>
+  {% endif %}
+  
+{% endblock %}
