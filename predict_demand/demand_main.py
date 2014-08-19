@@ -500,12 +500,14 @@ def clear_existing_predictions(year, month, day):
         print "Invalid Input to clear_existing_predictions"
 
 def write_predictions_to_csv():
-    """Write all predictions to a csv file"""
+    """Write all predictions to a csv file.
+    Convert id to ISO-formatted timestring by appending
+    ':00:00' to the id string"""
     predictions = get_predictions()
     if predictions:
         writer = csv.writer(open("predictions.csv", 'w'))
         for row in predictions:
-            writer.writerow((row['id'],row['num_logins']))
+            writer.writerow((row['id']+':00:00',row['num_logins']))
         return None
     else:
         return "No predictions. Try loading data or updating predictions"
