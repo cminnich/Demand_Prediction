@@ -6,9 +6,25 @@ from flask import Flask, request, session, g, redirect, url_for, abort, \
      render_template, flash, make_response, jsonify
 import datetime
 
+# RESTful API
 @app.route('/api', methods=['POST'])
 def post_data():
-    """Adds json timestamps to database"""
+    """Adds json timestamps to database.  Either can read in load json file and
+    Allows list of values, i.e. from loading entire json file:
+    curl -i -H "Content-Type: application/json" -X POST -d @uber_demand_prediction_challenge.json http://localhost:5000/api
+    Allows dictionary of single or multiple values, by specifying either
+    'timestamp' as the key if posting a single timestamp value, or
+    'timestamps' as the key if posting multiple timestamp values within a list.
+    curl -i -H "Content-Type: application/json" -X POST -d '{"timestamp":"2012-03-01T00:05:55+00:00"}' http://localhost:5000/api
+    curl -i -H "Content-Type: application/json" -X POST -d '{"timestamps":["2012-03-01T00:05:55+00:00", "2012-04-01T00:06:23+00:00"]}' http://localhost:5000/api
+    Return is json with the status of the post,
+    error details will be specified if the input is invalid (within 'error' key),
+    "timestamp" key will have list of hours that were affected (or just single hour)
+    and if this hour already existed in the database, 
+    "update" will hold the count of the entries appended to hours,
+    and if the hour had to be created within the database,
+    "insert" will hold the count of the entries created.
+    """
     if not request.json:
         abort(400)
     if type(request.json) is list:
@@ -29,10 +45,21 @@ def post_data():
        abort(400)
 
 @app.route('/api', methods=['GET'])
-def get_predicted():
-    """Gets predicted demand for next 15 days"""
-    return jsonify(demand_main.api_predict())
+@app.route('/api/<int:num_days>', methods=['GET'])
+def get_predicted(num_days=15):
+    """If historic client login data has been uploaded to the database,
+    loads the predicted outliers and runs the prediction algorithm for the next
+    specified number of days (15 days if unspecified).
+    Using the following command will return a jsonified prediction
+    of the next 15 days (from the last entered timestamp):
+    curl -i http://localhost:5000/api
+    To specify the number of days to predict (i.e. 3 days), use the following:
+    curl -i http://localhost:5000/api/3
+    """
+    return jsonify(demand_main.api_predict(num_days))
 
+
+# Web interface GUI with basic user authentication
 @app.teardown_appcontext
 def close_db(error):
     """Closes the database again at the end of the request."""
@@ -56,12 +83,12 @@ def clear_loaded_db():
     flash('Reinitializing...DB now empty')
     return redirect(url_for('show_entries'))
     
-@app.route('/read')
+@app.route('/read_json', methods=['POST'])
 def read_json():
     if not session.get('logged_in'):
         abort(401)
     # Add to input data client login database
-    if request.form['Submit'] == 'Add File':
+    if request.form['Submit'] == 'Add_File':
         # Adding entire file of login data
         errorMsg = demand_main.load_json_file(request.form['json_filename'])
         if errorMsg is not None:
@@ -73,13 +100,13 @@ def read_json():
         # Adding single data point
         error_msg = demand_main.add_single_login(request.form['client_login_time'])
         if 'error' in error_msg.keys():
-            flash(error_msg)
+            flash('Invalid timestamp entry')
         else:
             flash('Data point updated database. Predictions should be updated')
         demand_main.delete_predictions_with_actuals()
     return redirect(url_for('show_entries'))
     
-@app.route('/outlier')
+@app.route('/outlier', methods=['POST'])
 def add_outlier():
     if not session.get('logged_in'):
         abort(401)

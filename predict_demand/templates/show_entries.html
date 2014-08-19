@@ -3,19 +3,19 @@
 
 
   {% if session.logged_in %}
-    <form action="{{ url_for('read_json') }}" class=basicform>
+    <form action="{{ url_for('read_json') }}" method=POST class=basicform>
       <dl>
         <dt>Read Client Login data from *.json file (Appends to existing):
           <dd><input type=text size=50 name=json_filename value=uber_demand_prediction_challenge.json>
-          <dd><input type=submit name='Submit' value='Add File'>
+          <dd><input type=submit name='Submit' value='Add_File'>
         <dt><br>
         <dt>Enter Client Login data manually (Appends to existing):
           <dd>Timestamp [yyyy-hh-mmThh:mm:ss]:
           <dd><input type=text size=25 name=client_login_time>
-          <dd><input type=submit name='Submit' value='Add Entry'>
+          <dd><input type=submit name='Submit' value='Add_Entry'>
       </dl>
     </form>
-    <form action="{{ url_for('add_outlier') }}" class=basicform>
+    <form action="{{ url_for('add_outlier') }}" method=POST class=basicform>
       <dl>
         <dt>Load Predetermined Outliers: <input type=submit name='Submit' value='Load Outliers'>
         <dt><br>
@@ -49,6 +49,17 @@
   
   
   {% if show_db %}
+  <div>
+  <div class=predsum>
+    <h2>Client Login History</h2>
+    <ul class=entries>
+    {% for entry in history %}
+      <li>{{ entry.id|safe }}, {{ "{:.2f}".format(entry.num_logins)|safe }},
+    {% else %}
+      <li><em>No historic login data in database.</em>
+    {% endfor %}
+    </ul>
+  </div>
   <div class=predsum>
     <h2>Prediction Summary</h2>
     <ul class=entries>
@@ -58,16 +69,9 @@
       <li><em>No predictions in database.</em>
     {% endfor %}
     </ul>
-    <h2>Client Login History</h2>
-    <ul class=entries>
-    {% for entry in history %}
-      <li>{{ entry.id|safe }}, {{ "{:.2f}".format(entry.num_logins)|safe }},
-    {% else %}
-      <li><em>No historic login data in database.</em>
-    {% endfor %}
-    </ul>
-    </ul>
+  </div>
   </div>
   {% endif %}
   
+  <div align="right" class=me>Created by: Chris Minnich</div>
 {% endblock %}

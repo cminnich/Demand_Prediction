@@ -15,6 +15,7 @@ h2              { font-size: 1.2em; }
                   margin-bottom: 1em; background: #fafafa; }
 .flash          { background: #cee5F5; padding: 0.5em;
                   border: 1px solid #aacbe2; }
-.predsum        { font-size: 0.75em; border-bottom: 1px solid #ccc; }
+.predsum        { width: 50%;  float: left; overflow: auto; height: 150px; font-size: 0.75em; border-bottom: 1px solid #ccc; }
 .predsum dl     { font-weight: bold; }
 .error          { background: #f0d6d6; padding: 0.5em; }
+.me             { font-style: italic; font-family: 'Georgia', serif; margin: 3; }

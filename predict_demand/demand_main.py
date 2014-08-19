@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# This file defines the API for 
+# This file implements the following
 #   reading in and storing client login data, 
 #   running algorithms on stored data,
 #   & outputting predicted results.
@@ -12,11 +12,15 @@
 # Note: Once data has been loaded once, subsequent data will be appended to the
 # current dataset.  Data initialization should be correctly used (to prevent duplication).
 #
-# Filtering, clustering, and prediction algorithms can
-#  customize the data structure needed & save for future re-processing,
-#  load past results from file,
-#  run on the current dataset & save the results,
-#  or potentially be disabled.
+# Plotting functions used for in-depth analysis.
+# Useful for manual identification and tagging of outlier hours.
+#
+# Runs algorithm to predict demand by
+#  filtering (removes manually tagged outliers and algorithmically identified), 
+#  clustering (primarily by day of week & hour of day, secondarily by slope/trend
+#   of neighboring hours), and
+#  prediction (linear regression to find slope/trend in data over weeks, and smoothed
+#   over neighboring hours, then re-extrapolated based on the weighted mean).
 #
 
 from predict_demand import db_helper as dbh, demand_formatter as defo, \
@@ -33,7 +37,11 @@ def api_insert(json_data, single=None):
     else:
         return add_multiple_logins(json_data)
 
-def api_predict():
+def api_predict(num_days_to_predict):
+    if num_days_to_predict <= 0:
+        return {'error':'Number of days to predict must be positive'}
+    if num_days_to_predict >= 100:
+        return {'error':'Cannot predict more than 99 days forward'}
     delete_predictions_with_actuals()
     mark_predetermined_outliers()
     db = dbh.get_db()
@@ -43,10 +51,9 @@ def api_predict():
     latest = cur.fetchone()
     if latest:
         next_year, next_month, next_day = defo.tp_add_x_days_to_id(latest['id'], 1)
-        num_days_to_predict = 15
         return predict_demand(next_year,next_month,next_day,num_days_to_predict)
     else:
-        return {}
+        return {'error':'No data in login_history DB'}
 
 def initialize():
     """Clears the existing data, reloads the SQL tables"""
@@ -68,16 +75,12 @@ def get_predictions():
     login_predictions database.
     Formats the prediction data into a list of dictionaries,
     where the two keys for each dict are 'id' and 'num_logins'.
-    dict['id'] will return an ISO-formatted UTC timestamp
-    aka 2012−05−01T00:00:00, 21.00
+    dict['id'] will return a timestamp
+    aka 2012−05−01T00, 21.00
     """
     try:
         predictions = dbh.query_db('SELECT id, num_logins FROM login_predictions ORDER BY id ASC')
-        # Format id as ISO-formatted UTC timestamp
-        pred_list = []
-        for entry in predictions:
-            pred_list.append({'id':str(entry['id'])+':00:00','num_logins':entry['num_logins']})
-        return pred_list
+        return predictions
     except ValueError as err:
         print "Error in get_login_history"
         print err

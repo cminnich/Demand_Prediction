@@ -12,8 +12,8 @@ app.config.update(dict(
     DATABASE=os.path.join(app.root_path, 'predict_client_demand.db'),
     DEBUG=True,
     SECRET_KEY='development key',
-    USERNAME='uber',
-    PASSWORD='logisticstyle'
+    USERNAME='user',
+    PASSWORD='predict'
 ))
 
 # [optional] Set this env variable to override config settings
