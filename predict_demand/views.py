@@ -7,16 +7,16 @@ from flask import Flask, request, session, g, redirect, url_for, abort, \
 import datetime
 
 # RESTful API
-@app.route('/api', methods=['POST'])
+@app.route('/api/demand', methods=['POST'])
 def post_data():
     """Adds json timestamps to database.  Either can read in load json file and
     Allows list of values, i.e. from loading entire json file:
-    curl -i -H "Content-Type: application/json" -X POST -d @uber_demand_prediction_challenge.json http://localhost:5000/api
+    curl -i -H "Content-Type: application/json" -X POST -d @uber_demand_prediction_challenge.json http://localhost:5000/api/demand
     Allows dictionary of single or multiple values, by specifying either
     'timestamp' as the key if posting a single timestamp value, or
     'timestamps' as the key if posting multiple timestamp values within a list.
-    curl -i -H "Content-Type: application/json" -X POST -d '{"timestamp":"2012-03-01T00:05:55+00:00"}' http://localhost:5000/api
-    curl -i -H "Content-Type: application/json" -X POST -d '{"timestamps":["2012-03-01T00:05:55+00:00", "2012-04-01T00:06:23+00:00"]}' http://localhost:5000/api
+    curl -i -H "Content-Type: application/json" -X POST -d '{"timestamp":"2012-03-01T00:05:55+00:00"}' http://localhost:5000/api/demand
+    curl -i -H "Content-Type: application/json" -X POST -d '{"timestamps":["2012-03-01T00:05:55+00:00", "2012-04-01T00:06:23+00:00"]}' http://localhost:5000/api/demand
     Return is json with the status of the post,
     error details will be specified if the input is invalid (within 'error' key),
     "timestamp" key will have list of hours that were affected (or just single hour)
@@ -28,7 +28,12 @@ def post_data():
     if not request.json:
         abort(400)
     if type(request.json) is list:
-        return jsonify(demand_main.api_insert(request.json))
+        post_response = demand_main.api_insert(request.json)
+        if 'error' in post_response.keys():
+            http_code = 400 #BAD REQUEST
+        else:
+            http_code = 201 #CREATED
+        return make_response(jsonify(post_response),http_code)
     elif type(request.json) is dict:
         if 'timestamp' in request.json.keys():
             single = True
@@ -40,23 +45,33 @@ def post_data():
             return make_response(jsonify( { 'error': 'Bad request, needs timestamp/timestamps key', 
                 'timestamp_example': '2012-03-01T00:05:55+00:00',
                 'timestamps':['2012-03-01T00:05:55+00:00', '2012-03-01T00:06:23+00:00']} ), 400)
-        return jsonify(demand_main.api_insert(json_data,single))
+        post_response = demand_main.api_insert(json_data,single)
+        if 'error' in post_response.keys():
+            http_code = 400 #BAD REQUEST
+        else:
+            http_code = 201 #CREATED
+        return make_response(jsonify(post_response),http_code)
     else:
        abort(400)
 
-@app.route('/api', methods=['GET'])
-@app.route('/api/<int:num_days>', methods=['GET'])
+@app.route('/api/demand', methods=['GET'])
+@app.route('/api/demand/<int:num_days>', methods=['GET'])
 def get_predicted(num_days=15):
     """If historic client login data has been uploaded to the database,
     loads the predicted outliers and runs the prediction algorithm for the next
     specified number of days (15 days if unspecified).
     Using the following command will return a jsonified prediction
     of the next 15 days (from the last entered timestamp):
-    curl -i http://localhost:5000/api
+    curl -i http://localhost:5000/api/demand
     To specify the number of days to predict (i.e. 3 days), use the following:
-    curl -i http://localhost:5000/api/3
+    curl -i http://localhost:5000/api/demand/3
     """
-    return jsonify(demand_main.api_predict(num_days))
+    get_response = demand_main.api_predict(num_days)
+    if 'error' in get_response.keys():
+        http_code = 400 #BAD REQUEST
+    else:
+        http_code = 200 #OK
+    return make_response(jsonify(get_response),http_code)
 
 
 # Web interface GUI with basic user authentication
