@@ -13,6 +13,16 @@ This project was implemented with Python, Flask, and SQLite3.  I analyzed a data
 #Analysis
 I found that the data exhibited a strong weekly seasonality pattern.  To take advantage of this, I structured my database so that I could easily organize data by day of the week and hour of the day.
 
+The following is taken from demand_main.py, and illustrates how I leveraged my schema design for easy data access and manipulation.  This code first grabs all the login history from the database and saves this to , and reformats the data to a dictionary format with just Monday data, and now grouped by hour (where each hour is a list of id & # of login tuples).  This data can then be automatically plotted in the custom box-and-whisker format that is shown below.
+```python
+    cur.execute('SELECT * FROM login_history ORDER BY id ASC')
+    all_data = cur.fetchall()
+    ...
+    map(lambda y: mo_dict[y['hour']].append((y['id'],y['num_logins'])), \
+        filter(lambda x: x['day_name']=='Mo', all_data))
+    depl.plot_day_dict(mo_dict, '1_Monday', max_login)
+```
+
 The following Box-and-whisker plots are fairly intuitive, and highlight the significant differences in demand that could be expected between a Wednesday and a Saturday.
  - Red line at median
  - Box shows quartiles
@@ -26,14 +36,15 @@ This scatter plot shows one week's worth of data, where I programmatically relab
 ##Outliers
 I built in the ability to manually tag outliers, so they could be excluded from skewing the predictions.  One specific example from the dataset I analyzed: there is no data from 4am to 8am on March 14, which was due to Uber pushing out an app update with the [surge pricing feature](https://blog.uber.com/2012/03/14/clear-and-straight-forward-surge-pricing/).
 
-Associated with each outlier is a tag field.  This short description acts to save a known reasoning for the outlier, as well as provides a way to group and associate outliers.  I imagine a potentially valuable use of these outliers is to help determine the extent to which certain outliers increased (or decreased) demand, and use this information to help bias predicted demand instead of simply excluding the tagged outlier data.  For example, by tagging all hours that were impacted by Yelp promotions (i.e. with a "Yelp" tag), we can get measure the extent to which these promotions impacted demand, as well as help predict how future Yelp promotions might increase demand.
-[x] Tag outliers
-[x] Exclude outliers from prediction
-[ ] Analyze specific tags
-[ ] Influence prediction based on matching tags
+Associated with each outlier is a tag field.  This short description acts to save a known reasoning for the outlier, as well as provides a way to group and associate outliers.  I imagine a potentially valuable use of these outliers is to help determine the extent to which certain outliers increased (or decreased) demand, and use this information to help bias predicted demand instead of simply excluding the tagged outlier data.  For example, by tagging all hours that were impacted by Yelp promotions (i.e. with a "Yelp" tag), we can get measure the extent to which these promotions impacted demand, as well as help predict how future Yelp promotions might increase demand.  
+- [x] Tag outliers  
+- [x] Exclude outliers from prediction  
+- [ ] Analyze specific tags  
+- [ ] Influence prediction based on matching tags
 
 ##Prediction Approach
-Historic Login data grouped by days of the week (Mon, Tues, etc.) and hours of the day (0-23). Algorithm applies the following steps to each hour (i.e. Friday at 4)
+Historic Login data grouped by days of the week (Mon, Tues, etc.) and hours of the day (0-23). Algorithm applies the following steps to each hour (i.e. Friday at 4)  
+
 1. Utilize user-curated outlier data by removing them from the prediction dataset
 2. Statistical identification and removal of outliers
   * Using Median Absolute Deviation (more robust than standard deviation) to set tolerance window for valid data
@@ -52,9 +63,10 @@ Historic Login data grouped by days of the week (Mon, Tues, etc.) and hours of t
   * User can specify a multiplier for hours that are expected to have increased demand
     * i.e. Cinco de Mayo might have a 1.5x multiplier on demand at 11pm
 
-One major problem with this simple linear regression technique is that it is highly sensitive to noise, and predicts a decrease in demand (negative slope) for some hours.  Particularly because this dataset is for Washington D.C. not too long after Uber was launched in the city (and had relatively sparse demand), we really don't expect the demand to decrease.  
+One major problem with this simple linear regression technique is that it is highly sensitive to noise, and predicts a decrease in demand (negative slope) for some chunks of hours that have relatively little demand.  Particularly because this dataset is for Washington D.C. not too long after Uber was launched in the city (and had relatively sparse demand), we really don't expect the demand to decrease.  
+![alt tag](https://raw.githubusercontent.com/cminnich/Demand_Prediction/master/plots/Predicted_Slopes_0pass.png "Linear Regression, No Smoothing")
 
-To address this, I implemented an "Optimistic Smoothing" algorithm. It performs 2 passes of this smoothing technique on the slopes generated through linear regression.  Conceptually, the smoothing allows the trend (or slope) exhibited by neighboring hours to be factored into the expected trend at the current hour. It optimistically emphasizes positive trends in the data, by not doing a simple average of the current and before/after (neighboring) hours under the following conditions:
+To address this, I implemented an "Optimistic Smoothing" algorithm. It performs 2 passes of this smoothing technique on the slopes generated through linear regression.  Conceptually, the smoothing allows the trend (or slope) exhibited by neighboring hours to be factored into the expected trend at the current hour. It optimistically emphasizes positive trends in the data, by not doing a simple average of the current and before/after (neighboring) hours under the following conditions:  
   * If current slope is local min, exclude current slope from average (only use neighbors)
   * If neighbor slope is negative, use the slope 2 hours away (if it is greater than neighbor)
 
