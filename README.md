@@ -13,11 +13,11 @@ This project was implemented with Python, Flask, and SQLite3.  I analyzed a data
 #Analysis
 I found that the data exhibited a strong weekly seasonality pattern.  To take advantage of this, I structured my database so that I could easily organize data by day of the week and hour of the day.
 
-The following Box-and-whisker plots are fairly intuitive, and highlight the significant differences in demand that could be expected between a Tuesday and a Saturday.
+The following Box-and-whisker plots are fairly intuitive, and highlight the significant differences in demand that could be expected between a Wednesday and a Saturday.
  - Red line at median
  - Box shows quartiles
  - Whiskers show the entire range, with pluses as outliers
-![alt tag](https://raw.githubusercontent.com/cminnich/Demand_Prediction/master/plots/days/ByHour_2_Tuesday.png "Tuesday data by hour")
+![alt tag](https://raw.githubusercontent.com/cminnich/Demand_Prediction/master/plots/days/ByHour_3_Wednesday.png "Wednesday data by hour")
 ![alt tag](https://raw.githubusercontent.com/cminnich/Demand_Prediction/master/plots/days/ByHour_6_Saturday.png "Saturday data by hour")
 
 This scatter plot shows one week's worth of data, where I programmatically relabel the x-axis ticks and annotated the peak hour of demand in the week. It was important to me to automate the creation of this and other descriptive plots because of their utility for a wide range of input datasets.
