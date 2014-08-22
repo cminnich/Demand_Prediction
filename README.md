@@ -13,16 +13,20 @@ This project was implemented with Python, Flask, and SQLite3.  I analyzed a data
 #Analysis
 I found that the data exhibited a strong weekly seasonality pattern.  To take advantage of this, I structured my database so that I could easily organize data by day of the week and hour of the day.
 
-The following is taken from demand_main.py, and illustrates how I leveraged my schema design for easy data access and manipulation.  This code first grabs all the login history from the database and saves this to , and reformats the data to a dictionary format with just Monday data, and now grouped by hour (where each hour is a list of id & # of login tuples).  This data can then be automatically plotted in the custom box-and-whisker format that is shown below.
+The following is taken from demand\_main.py, and illustrates how I leveraged my schema design for easy data access and manipulation.  Since my example dataset is manageable size-wise, I first grab the entire login history from the database and save this to all\_data  
 ```python
     cur.execute('SELECT * FROM login_history ORDER BY id ASC')
     all_data = cur.fetchall()
-    ...
-    map(lambda y: mo_dict[y['hour']].append((y['id'],y['num_logins'])), \
-        filter(lambda x: x['day_name']=='Mo', all_data))
-    depl.plot_day_dict(mo_dict, '1_Monday', max_login)
 ```
-
+This next line then filters out just the Wednesday data, and shapes the data into a dictionary format grouped by hour (where each hour is a list of id & # of login tuples)  
+```python
+    map(lambda y: we_dict[y['hour']].append((y['id'],y['num_logins'])), \
+        filter(lambda x: x['day_name']=='We', all_data))
+```
+I then use a plotting function within demand\_plotter.py (renamed to depl) to save the box-and-whisker plot for all data from Wednesday.
+```python
+    depl.plot_day_dict(we_dict, '3_Wednesday', max_login)
+```
 The following Box-and-whisker plots are fairly intuitive, and highlight the significant differences in demand that could be expected between a Wednesday and a Saturday.
  - Red line at median
  - Box shows quartiles
