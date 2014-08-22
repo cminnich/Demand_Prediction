@@ -43,7 +43,8 @@ def plot_by_day(day_dict):
     save('Day_Analysis')
     plt.close()
 
-def plot_by_week(x_list, y_list, id_list, fix_y=None, savename=None, split=None):
+def plot_by_week(x_list, y_list, id_list, fix_y=None, predicted_color=None, \
+                 savename=None, split=None):
     """Given a list of hours and list of client login counts,
     plots the time vs. count data and uses the id_list for
     formatting x tick labels and saving correctly"""
@@ -55,7 +56,11 @@ def plot_by_week(x_list, y_list, id_list, fix_y=None, savename=None, split=None)
         ax.scatter(x_list[:split], y_list[:split], color='green')
         ax.scatter(x_list[split:], y_list[split:], color='blue')
     else:
-        ax.scatter(x_list, y_list)
+        if predicted_color is None:
+            scatter_color = 'green'
+        else:
+            scatter_color = 'blue'
+        ax.scatter(x_list, y_list, color=scatter_color)
     # Label high peak
     peak_idx = y_list.index(max(y_list))
     ax.annotate(defo.day_hour_from_id(id_list[peak_idx]), 
@@ -73,6 +78,8 @@ def plot_by_week(x_list, y_list, id_list, fix_y=None, savename=None, split=None)
         plt.xticks( range(-24*7,1,6), day_list, fontsize = 7 )
         plt.xlabel('Time')
     else:
+        print "In plot by week, size: %d"%(len(id_list))
+        print id_list[0] + ' to ' + id_list[-1]
         plt.xticks( range(-24*7,1,12) ) # Every 12 hours for readability
         plt.xlabel('Hours')
     plt.grid()
@@ -131,7 +138,7 @@ def plot_single_day(id_cnt_list, savename, ymax=None):
     plt.close()
 
 def plot_day_dict(day_dict, day_str, fix_y=None, enable_scatter=False):
-    """Given a dictionary for a single day, where 
+    """Given input data for a single day in the form of a dictionary, where 
     the keys are hours (0 to 23) and
     the values are lists of login counts per hour,
     scatter plots the values and creates a summary box plot on top"""

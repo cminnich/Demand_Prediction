@@ -408,6 +408,36 @@ def predict_demand(year,month,day,num_days,enable_plots=None):
     db.commit()
     return demand_predictions
 
+def fill_missing_hours():
+    """Reads login data from database and fills in any missing hours.
+    Inserts new entries with number of login counts set to 0."""
+    db = dbh.get_db()
+    cur = db.cursor()
+    cur.execute('SELECT id FROM login_history ORDER BY id ASC')
+    all_data = cur.fetchall()
+    if all_data:
+        hours_missing = False
+        prev_id = defo.add_x_hours(all_data[0]['id'], -1) # start at 1 hour before first entry
+        for hour in all_data:
+            if hour['id'] != defo.add_x_hours(prev_id, 1):
+                print 'prev: %s'%(prev_id)
+                print 'next: %s'%(hour['id'])
+                if defo.dy_subtract_ids(hour['id'], prev_id) < 3:
+                    # Only insert 0's for missing entries when the gap
+                    # between data is less than 3 days
+                    missing_hour = defo.add_x_hours(prev_id, 1)
+                    while missing_hour < hour['id']:
+                        cur.execute('INSERT INTO login_history ' + \
+                            '(id, day_name, hour, num_logins) ' + \
+                            'values (?, ?, ?, ?)', \
+                            (missing_hour, defo.get_day_2char(missing_hour), \
+                             defo.get_hour(missing_hour), 0))
+                        missing_hour = defo.add_x_hours(missing_hour, 1)
+                    hours_missing = True
+            prev_id = hour['id']
+        if hours_missing:
+            db.commit()
+    
 def plot_predictions(update_plots=None):
     """Updates the predictions (if update_plots is not None) which will also plot
     the linear regression predictions with past data,
@@ -452,7 +482,7 @@ def plot_predictions(update_plots=None):
         pred_id = [x['id'] for x in pred_data if x['id']>pred_week_start and x['id']<=pred_end]
         if pred_id:
             depl.plot_by_week(x_list=range(-1*len(pred_y),0),y_list=pred_y,id_list=pred_id,
-                fix_y=max_pred,savename='predicted/Week_'+pred_end[:10])
+                fix_y=max_pred,predicted_color=1,savename='predicted/Week_'+pred_end[:10])
         pred_end = pred_week_start
         pred_week_start = defo.subtract_one_week(pred_end)
     

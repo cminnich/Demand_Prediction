@@ -53,6 +53,7 @@ def post_data():
         return make_response(jsonify(post_response),http_code)
     else:
        abort(400)
+       
 
 @app.route('/api/demand', methods=['GET'])
 @app.route('/api/demand/<int:num_days>', methods=['GET'])
@@ -142,6 +143,7 @@ def add_outlier():
 def analysis_plots():
     if not session.get('logged_in'):
         abort(401)
+    demand_main.fill_missing_hours()
     demand_main.run_analytics()
     lin_reg_pred_plots = 1 # None: skips plots, much faster
     demand_main.plot_predictions(lin_reg_pred_plots)
@@ -152,6 +154,7 @@ def analysis_plots():
 def update_prediction():
     if not session.get('logged_in'):
         abort(401)
+    demand_main.fill_missing_hours()
     #demand_main.plot_predictions()
     demand_main.predict_demand(2012,05,01,15)
     flash('Updated Predicted Demand')
