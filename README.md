@@ -67,15 +67,20 @@ Historic Login data grouped by days of the week (Mon, Tues, etc.) and hours of t
   * User can specify a multiplier for hours that are expected to have increased demand
     * i.e. Cinco de Mayo might have a 1.5x multiplier on demand at 11pm
 
-One major problem with this simple linear regression technique is that it is highly sensitive to noise, and predicts a decrease in demand (negative slope) for some chunks of hours that have relatively little demand.  Particularly because this dataset is for Washington D.C. not too long after Uber was launched in the city (and had relatively sparse demand), we really don't expect the demand to decrease.  
+One major problem with this simple linear regression technique is that it is highly sensitive to noise, and predicts a decrease in demand (negative slope) for some chunks of hours that have relatively little demand.  Particularly because this dataset is for Washington D.C. not too long after Uber was launched in the city (and had relatively sparse demand), we really don't expect the demand to decrease.  The following plot shows the calculated slope - representing the predicted change to demand on future weeks for a given hour and day of the week.
 ![alt tag](https://raw.githubusercontent.com/cminnich/Demand_Prediction/master/plots/Predicted_Slopes_0pass.png "Linear Regression, No Smoothing")
 
 To address this, I implemented an "Optimistic Smoothing" algorithm. It performs 2 passes of this smoothing technique on the slopes generated through linear regression.  Conceptually, the smoothing allows the trend (or slope) exhibited by neighboring hours to be factored into the expected trend at the current hour. It optimistically emphasizes positive trends in the data, by not doing a simple average of the current and before/after (neighboring) hours under the following conditions:  
   * If current slope is local min, exclude current slope from average (only use neighbors)
   * If neighbor slope is negative, use the slope 2 hours away (if it is greater than neighbor)
 
-Visually, we can see the difference this Optimistic Smoothing produces on the slope trends.  
+Visually, we can see the difference this Optimistic Smoothing produces on the slope trends.  This plot shows the calculated slope after applying the 2-Pass Optimistic Smoothing.  Note that there are no longer any negative slopes (predicted decrease in demand).
 ![alt tag](https://raw.githubusercontent.com/cminnich/Demand_Prediction/master/plots/Predicted_Slopes.png "After 2-Pass Optimistic Smoothing")
+
+##Predictions
+The following plots show the first 8 days worth of predicted number of logins.  The green datapoints are the actuals, and the blue datapoints are the predictions.
+![alt tag](https://raw.githubusercontent.com/cminnich/Demand_Prediction/master/plots/predicted/Week_2012-05-01.png "6 days (Actuals) & 1 day (Predicted)")
+![alt tag](https://raw.githubusercontent.com/cminnich/Demand_Prediction/master/plots/predicted/Week_2012-05-08.png "7 days (Predicted)")
 
 #Usage
 Start a local server instance (running on Port 5000 in the following examples) by running the following command from the top level directory  
@@ -106,7 +111,7 @@ Returns json status of the post:
 ##Getting Client Login Predictions - REST API
 Allow GETing of predicted number of logins (per hour) for days in the future.  Predictions will start on the day immediately following the latest historical datapoint.
 
-By default will predict forward 15 days:
+By default, will predict forward 15 days:
 
 `curl -i http://localhst:5000/api/demand`
 
@@ -114,8 +119,21 @@ To predict a specific number of days (i.e. 3 days):
 
 `curl -i http://localhst:5000/api/demand/3`
 
+Returns json prediction of each hour and the corresponding predicted number of logins
+
 ##Web Interface
-I built a simple web interface with more functionality, as an alternate GUI based approach that allows for additional administrative tasks.  
+Using the lightweight Flask framework, I built a simple web interface with more functionality than offered through the command line API.  
 
+Without logging in, the currently loaded historical data and future predictions will be displayed.  
 
-
+After logging in (username: 'user', password: 'predict'), the following additional administrative functionality is available:
+- Read client login data to update the database by either creating a new hour entry, or appends (+1 count) to an existing hour entry in the database
+  - From local *.json files
+  - From specified individual ISO timestamp
+- Load Outlier Data
+  - Predetermined hours (hardcoded) for explainable data points to remove
+  - Manually enter timestamp of hour with reasoning tag
+- Generate Plots: saved locally within project directory
+- Update Predictions: for the next 15 days worth of data from the latest datapoint
+- Write Predictions to CSV file
+- Clear Database (reinitialize everything)
