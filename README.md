@@ -13,28 +13,29 @@ This project was implemented with Python, Flask, and SQLite3.  I analyzed a data
 #Analysis
 I found that the data exhibited a strong weekly seasonality pattern.  To take advantage of this, I structured my database so that I could easily organize data by day of the week and hour of the day.
 
-The following is taken from demand\_main.py, and illustrates how I leveraged my schema design for easy data access and manipulation.  Since my example dataset is manageable size-wise, I first grab the entire login history from the database and save this to all\_data  
+The following code, taken from demand\_main.py, is an example of some analysis that I performed on the data.  It illustrates how I utilized the schema design to easily access, manipulate, and visualize the data.  
+I first grab the entire login history from the database (manageable size of example dataset does not impose memory constraints here) and save this to all\_data  
 ```python
     cur.execute('SELECT * FROM login_history ORDER BY id ASC')
     all_data = cur.fetchall()
 ```
-This next line then filters out just the Wednesday data, and shapes the data into a dictionary format grouped by hour (where each hour is a list of id & # of login tuples)  
+To look at just the data from Wednesday (stored in database using 'We' abbreviation) specifically, the following line filters and reshapes the data to a dictionary format that is grouped by hour.
 ```python
     map(lambda y: we_dict[y['hour']].append((y['id'],y['num_logins'])), \
         filter(lambda x: x['day_name']=='We', all_data))
 ```
-I then use a plotting function within demand\_plotter.py (renamed to depl) to save the box-and-whisker plot for all data from Wednesday.
+I then use my plotting function within demand\_plotter.py (renamed to depl) to save the box-and-whisker plot for all data from Wednesday.
 ```python
     depl.plot_day_dict(we_dict, '3_Wednesday', max_login)
 ```
-The following Box-and-whisker plots are fairly intuitive, and highlight the significant differences in demand that could be expected between a Wednesday and a Saturday.
+The following Box-and-whisker plots visually highlight the significant differences in demand that could be expected between a Wednesday and a Saturday.
  - Red line at median
  - Box shows quartiles
  - Whiskers show the entire range, with pluses as outliers
 ![alt tag](https://raw.githubusercontent.com/cminnich/Demand_Prediction/master/plots/days/ByHour_3_Wednesday.png "Wednesday data by hour")
 ![alt tag](https://raw.githubusercontent.com/cminnich/Demand_Prediction/master/plots/days/ByHour_6_Saturday.png "Saturday data by hour")
 
-This scatter plot shows one week's worth of data, where I programmatically relabel the x-axis ticks and annotated the peak hour of demand in the week. It was important to me to automate the creation of this and other descriptive plots because of their utility for a wide range of input datasets.
+This scatter plot shows one week's worth of data, where I programmatically relabel the x-axis ticks and annotated the peak hour of demand in the week. It was important to me to automate the creation of this and other descriptive plots because of their utility for a wide range of input datasets.  I wanted to build in reusability wherever possible.
 ![alt tag](https://raw.githubusercontent.com/cminnich/Demand_Prediction/master/plots/weeks/2012_03_19.png "Week ending on March 19, 2012")
 
 ##Outliers
@@ -86,40 +87,40 @@ The following plots show the first 8 days worth of predicted number of logins.  
 Start a local server instance (running on Port 5000 in the following examples) by running the following command from the top level directory  
 `python runserver.py`
 
-##Adding Client Login Timestamp Data - REST API
-Allow POSTing of ISO-formatted UTC timestamps, i.e. the form  
+##REST API - POST Demand History
+Use the POST request to add Client Login Timestamp Data.  
+Timestamps must be ISO-formatted, i.e. the form  
 **2012−05−01T00:00:00**
+######Resource URL:  
+`http://localhost:5000/api/demand`
 
-Insert a list of client logins within a JSON object:
-
+Insert a list of client logins within a JSON object:  
 `curl -i -H "Content-Type: application/json" -X POST -d @uber_demand_prediction_challenge.json http://localhost:5000/api/demand`
 
-Insert a single client login datapoint:
-
+Insert a single client login timestamp datapoint using 'timestamp':  
 `curl -i -H "Content-Type: application/json" -X POST -d '{"timestamp":"2012-03-01T00:05:55+00:00"}' http://localhost:5000/api/demand`
 
-Insert a list of client logins:
-
+Insert a list of client logins using 'timestamps':  
 `curl -i -H "Content-Type: application/json" -X POST -d '{"timestamps":["2012-03-01T00:05:55+00:00", "2012-03-01T00:06:23+00:00","2012-03-01T00:06:55+00:00"]}' http://localhost:5000/api/demand`
 
-Returns json status of the post:
+Along with the appropriate HTTP Status Code response, returns an additional json status from the POST with:
 - error details will be specified if the input is invalid (within an 'error' key, whose value can specify more details)
 - "timestamp" key will have list of hours that were affected (or just a single hour)
 - if the affected hour already exists in the database, the "update" key will hold the count of the appended entries
 - if a new hour record was created, the "insert" key will hold the count of the new entries
 
-##Getting Client Login Predictions - REST API
-Allow GETing of predicted number of logins (per hour) for days in the future.  Predictions will start on the day immediately following the latest historical datapoint.
+##REST API - GET Demand Predictions
+Use the GET request to get Client Login Predictions.  Number of logins predicted per hour for days in the future.  Predictions start on the day immediately following the latest historical datapoint.
+######Resource URL:  
+`http://localhost:5000/api/demand`
 
-By default, will predict forward 15 days:
-
+By default, will predict forward 15 days:  
 `curl -i http://localhst:5000/api/demand`
 
-To predict a specific number of days (i.e. 3 days):
-
+To predict a specific number of days (i.e. 3 days):  
 `curl -i http://localhst:5000/api/demand/3`
 
-Returns json prediction of each hour and the corresponding predicted number of logins
+Along with the appropriate HTTP Status Code response, returns the json prediction of each hour and the corresponding predicted number of logins
 
 ##Web Interface
 Using the lightweight Flask framework, I built a simple web interface with more functionality than offered through the command line API.  
