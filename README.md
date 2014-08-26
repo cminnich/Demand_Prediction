@@ -35,11 +35,11 @@ The following Box-and-whisker plots visually highlight the significant differenc
 ![alt tag](https://raw.githubusercontent.com/cminnich/Demand_Prediction/master/plots/days/ByHour_3_Wednesday.png "Wednesday data by hour")
 ![alt tag](https://raw.githubusercontent.com/cminnich/Demand_Prediction/master/plots/days/ByHour_6_Saturday.png "Saturday data by hour")
 
-This scatter plot shows one week's worth of data, where I programmatically relabel the x-axis ticks and annotated the peak hour of demand in the week. It was important to me to automate the creation of this and other descriptive plots because of their utility for a wide range of input datasets.  I wanted to build in reusability wherever possible.
+This scatter plot shows one week's worth of data, where I programmatically relabel the x-axis ticks and automatically find and annotate the peak hour of demand in the week. 
 ![alt tag](https://raw.githubusercontent.com/cminnich/Demand_Prediction/master/plots/weeks/2012_03_19.png "Week ending on March 19, 2012")
 
 ##Outliers
-I built in the ability to manually tag outliers, so they could be excluded from skewing the predictions.  One specific example from the dataset I analyzed: there is no data from 4am to 8am on March 14, which was due to Uber pushing out an app update with the [surge pricing feature](https://blog.uber.com/2012/03/14/clear-and-straight-forward-surge-pricing/).
+I built in the ability to manually tag outliers, so they could be excluded from skewing the predictions.  I identified and tagged a variety of outlier data points whose extreme (high or low) demand could be attributed to a justifiable reason.  One specific example from the dataset I analyzed: there is no data from 4am to 8am on March 14, which was due to Uber pushing out an app update with the [surge pricing feature](https://blog.uber.com/2012/03/14/clear-and-straight-forward-surge-pricing/).
 
 Associated with each outlier is a tag field.  This short description acts to save a known reasoning for the outlier, as well as provides a way to group and associate outliers.  I imagine a potentially valuable use of these outliers is to help determine the extent to which certain outliers increased (or decreased) demand, and use this information to help bias predicted demand instead of simply excluding the tagged outlier data.  For example, by tagging all hours that were impacted by Yelp promotions (i.e. with a "Yelp" tag), we can get measure the extent to which these promotions impacted demand, as well as help predict how future Yelp promotions might increase demand.  
 - [x] Tag outliers  
@@ -79,8 +79,9 @@ Visually, we can see the difference this Optimistic Smoothing produces on the sl
 ![alt tag](https://raw.githubusercontent.com/cminnich/Demand_Prediction/master/plots/Predicted_Slopes.png "After 2-Pass Optimistic Smoothing")
 
 ##Predictions
-The following plots show the first 8 days worth of predicted number of logins.  The green datapoints are the actuals, and the blue datapoints are the predictions.
+The following plots show the first 8 days worth of predicted number of logins.  The green datapoints are the actuals, and the blue datapoints are the predictions.  
 ![alt tag](https://raw.githubusercontent.com/cminnich/Demand_Prediction/master/plots/predicted/Week_2012-05-01.png "6 days (Actuals) & 1 day (Predicted)")
+This week includes a future predicted outlier, Cinco De Mayo.  I predicted a 1.5x multiplier for a specific chunk of hours on this day.  
 ![alt tag](https://raw.githubusercontent.com/cminnich/Demand_Prediction/master/plots/predicted/Week_2012-05-08.png "7 days (Predicted)")
 
 #Usage
@@ -109,18 +110,68 @@ Along with the appropriate HTTP Status Code response, returns an additional json
 - if the affected hour already exists in the database, the "update" key will hold the count of the appended entries
 - if a new hour record was created, the "insert" key will hold the count of the new entries
 
+Example response for inserting 1 timestamp when that hour already exists within the database, includes 201 CREATED HTTP status code to indicate a successful creation along with each timestamp inserted and count of 1 hour that was "updated":  
+```
+HTTP/1.0 201 CREATED
+Content-Type: application/json
+Content-Length: 62
+Server: Werkzeug/0.9.6 Python/2.7.7
+Date: Tue, 26 Aug 2014 03:44:30 GMT
+
+{
+  "timestamp": "2012-03-01T00:05:55+00:00", 
+  "update": 1
+}
+```
+
 ##REST API - GET Demand Predictions
 Use the GET request to get Client Login Predictions.  Number of logins predicted per hour for days in the future.  Predictions start on the day immediately following the latest historical datapoint.
 ######Resource URL:  
 `http://localhost:5000/api/demand`
 
 By default, will predict forward 15 days:  
-`curl -i http://localhst:5000/api/demand`
+`curl -i http://localhost:5000/api/demand`
 
 To predict a specific number of days (i.e. 3 days):  
-`curl -i http://localhst:5000/api/demand/3`
+`curl -i http://localhost:5000/api/demand/3`
 
-Along with the appropriate HTTP Status Code response, returns the json prediction of each hour and the corresponding predicted number of logins
+Along with the appropriate HTTP Status Code response, returns the json prediction of each hour and the corresponding predicted number of logins.  
+
+Example response for predicting 1 day, includes 200 OK HTTP status code to indicate a successful request along with each hour and predicted number of logins:  
+```
+HTTP/1.0 200 OK
+Content-Type: application/json
+Content-Length: 956
+Server: Werkzeug/0.9.6 Python/2.7.7
+Date: Tue, 26 Aug 2014 03:38:17 GMT
+
+{
+  "2012-05-01T00": 18.566893281115636, 
+  "2012-05-01T01": 21.83782416617116, 
+  "2012-05-01T02": 20.089679952815562, 
+  "2012-05-01T03": 13.785368973761344, 
+  "2012-05-01T04": 7.0944064312166972, 
+  "2012-05-01T05": 5.494589784367145, 
+  "2012-05-01T06": 2.3059376203966222, 
+  "2012-05-01T07": 1.9590624596839912, 
+  "2012-05-01T08": 2.894597582713657, 
+  "2012-05-01T09": 5.3603431557477466, 
+  "2012-05-01T10": 6.6714987646868691, 
+  "2012-05-01T11": 11.553181105512023, 
+  "2012-05-01T12": 14.139022063008474, 
+  "2012-05-01T13": 11.747732176778698, 
+  "2012-05-01T14": 12.1914484917473, 
+  "2012-05-01T15": 11.908294438109966, 
+  "2012-05-01T16": 12.120628596724213, 
+  "2012-05-01T17": 13.297554458789921, 
+  "2012-05-01T18": 14.806574168932737, 
+  "2012-05-01T19": 15.238315443322787, 
+  "2012-05-01T20": 15.310212745663573, 
+  "2012-05-01T21": 16.617359421977017, 
+  "2012-05-01T22": 22.846377369169147, 
+  "2012-05-01T23": 23.125764596138033
+}
+```
 
 ##Web Interface
 Using the lightweight Flask framework, I built a simple web interface with more functionality than offered through the command line API.  
