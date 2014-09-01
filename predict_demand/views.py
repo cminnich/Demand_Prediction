@@ -6,7 +6,7 @@ from flask import Flask, request, session, g, redirect, url_for, abort, \
      render_template, flash, make_response, jsonify
 import datetime
 
-# RESTful API
+# API
 @app.route('/api/demand', methods=['POST'])
 def post_data():
     """Adds json timestamps to database.  Either can read in load json file and
@@ -55,17 +55,40 @@ def post_data():
        abort(400)
        
 
-@app.route('/api/demand', methods=['GET'])
-@app.route('/api/demand/<int:num_days>', methods=['GET'])
-def get_predicted(num_days=15):
+@app.route('/api/predict', methods=['PUT'])
+@app.route('/api/predict/<int:num_days>', methods=['PUT'])
+def update_predicted(num_days=15):
     """If historic client login data has been uploaded to the database,
     loads the predicted outliers and runs the prediction algorithm for the next
-    specified number of days (15 days if unspecified).
-    Using the following command will return a jsonified prediction
-    of the next 15 days (from the last entered timestamp):
-    curl -i http://localhost:5000/api/demand
+    specified number of days (15 days if unspecified).  Saves these predicted
+    number of logins per hour to the database.
+    Using the following command will update the predictions for the
+    next 15 days (from the day after the last entered timestamp):
+    curl -i -X PUT http://localhost:5000/api/predict
     To specify the number of days to predict (i.e. 3 days), use the following:
-    curl -i http://localhost:5000/api/demand/3
+    curl -i -X PUT http://localhost:5000/api/predict/3
+    """
+    get_response = demand_main.api_update_predictions(num_days)
+    if 'error' in get_response.keys():
+        http_code = 400 #BAD REQUEST
+    else:
+        http_code = 201 #CREATED
+    return make_response(jsonify(get_response),http_code)
+
+
+@app.route('/api/predict', methods=['GET'])
+@app.route('/api/predict/<int:num_days>', methods=['GET'])
+def get_predicted(num_days=None):
+    """If predictions have been updated and stored in the database (via /api/predict PUT), 
+    returns the predicted logins per hour for future demand.
+    If num_days is not specified, then all predicted days will be returned.
+    Otherwise, will attempt to return up to num_days worth of predictions
+    that currently exist in the database.
+    Using the following command will return a jsonified prediction
+    of every prediction (starting from the last entered timestamp):
+    curl -i http://localhost:5000/api/predict
+    To specify the number of days to predict (i.e. 3 days), use the following:
+    curl -i http://localhost:5000/api/predict/3
     """
     get_response = demand_main.api_predict(num_days)
     if 'error' in get_response.keys():

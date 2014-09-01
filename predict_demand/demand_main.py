@@ -32,12 +32,20 @@ import json
 from collections import deque
 
 def api_insert(json_data, single=None):
+    """Inserts client login timestamp data to the database.
+    Input parameter single specifies if json_data is a single timestamp or a list
+    of timestamps."""
     if single:
         return add_single_login(json_data)
     else:
         return add_multiple_logins(json_data)
 
-def api_predict(num_days_to_predict):
+def api_update_predictions(num_days_to_predict):
+    """Updates the predictions based on historic logins that are contained within
+    the database.  Deletes existing predictions that have actual data for matching
+    days and loads the predetermined outliers.  
+    The input paramter num_days_to_predict specifies the number of days that will
+    be predicted, starting at the day following the latest actual (historic) timestamp."""
     if num_days_to_predict <= 0:
         return {'error':'Number of days to predict must be positive'}
     if num_days_to_predict >= 100:
@@ -46,7 +54,53 @@ def api_predict(num_days_to_predict):
     mark_predetermined_outliers()
     db = dbh.get_db()
     cur = db.cursor()
-    # For now (smaller dataset), loading all 3 tables in memory is not a problem
+    cur.execute('SELECT id FROM login_history ORDER BY id DESC')
+    latest = cur.fetchone() # Get latest id so we can start predictions on following day
+    if latest:
+        next_year, next_month, next_day = defo.tp_add_x_days_to_id(latest['id'], 1)
+        return predict_demand(next_year,next_month,next_day,num_days_to_predict)
+    else:
+        return {'error':'No data in login_history DB'}
+
+def api_predict(num_days_to_predict):
+    """Returns the predicted values that are in the database.
+    If num_days_to_predict is None, returns all predictions.
+    Otherwise, num_days_to_predict specifies the number of predicted days
+    to be returned.  If this value exceeds the number of predicted days currently
+    in the database, returns an error."""
+    if num_days_to_predict is not None:
+        if num_days_to_predict <= 0:
+            return {'error':'Number of days to predict must be positive'}
+        if num_days_to_predict >= 100:
+            return {'error':'Cannot predict more than 99 days forward'}
+    
+    try:
+        db = dbh.get_db()
+        cur = db.cursor()
+        predictions = None
+        if num_days_to_predict is not None:
+            cur.execute('SELECT id FROM login_predictions ORDER BY id ASC')
+            first_pred = cur.fetchone() # Get first prediction id
+            if first_pred:
+                last_year, last_month, last_day = defo.tp_add_x_days_to_id(first_pred['id'], num_days_to_predict)
+                last_pred = defo.get_id_str(last_year, last_month, last_day, 0)
+                cur.execute('SELECT id, num_logins FROM login_predictions WHERE id<? ORDER BY id ASC',(last_pred,))
+                predictions = cur.fetchall()
+            else:
+                return {'error':'No predictions in DB - try to PUT api/predict resource first'}
+        else:
+            cur.execute('SELECT id, num_logins FROM login_predictions ORDER BY id ASC')
+            predictions = cur.fetchall()
+        if predictions:
+            pred_dict = {}
+            [pred_dict.update({pred['id']:pred['num_logins']}) for pred in predictions]
+            return pred_dict
+        else:
+            return {'error':'No predictions in DB - try to PUT api/predict resource first'}
+        return predictions
+    except ValueError as err:
+        return {'error':'No predictions in DB - try to PUT api/predict resource first'}
+        
     cur.execute('SELECT id FROM login_history ORDER BY id DESC')
     latest = cur.fetchone()
     if latest:
