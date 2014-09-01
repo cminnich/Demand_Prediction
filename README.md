@@ -85,6 +85,8 @@ This week includes a future predicted outlier, Cinco De Mayo.  I predicted a 1.5
 ![alt tag](https://raw.githubusercontent.com/cminnich/Demand_Prediction/master/plots/predicted/Week_2012-05-08.png "7 days (Predicted)")
 
 #Usage
+Interact through command line REST API or web interface as detailed below.
+
 Start a local server instance (running on Port 5000 in the following examples) by running the following command from the top level directory  
 `python runserver.py`
 
@@ -124,57 +126,53 @@ Date: Tue, 26 Aug 2014 03:44:30 GMT
 }
 ```
 
-##REST API - GET Demand Predictions
-Use the GET request to get Client Login Predictions.  Number of logins predicted per hour for days in the future.  Predictions start on the day immediately following the latest historical datapoint.
+##REST API - PUT Update Predictions Based on History
+Use the PUT request to update the Predictions. Number of logins predicted per hour for days in the future.  
+Predictions start on the day immediately following the latest historical datapoint.  Additionally clears out old predictions (when there is actual data for that day) and loads in the predetermined outliers.  Will return identical response (besides HTTP Status Code) as corresponding GET request.  
 ######Resource URL:  
-`http://localhost:5000/api/demand`
+`http://localhost:5000/api/predict`
 
 By default, will predict forward 15 days:  
-`curl -i http://localhost:5000/api/demand`
+`curl -i -X PUT http://localhost:5000/api/demand`
 
 To predict a specific number of days (i.e. 3 days):  
-`curl -i http://localhost:5000/api/demand/3`
+`curl -i -X PUT http://localhost:5000/api/demand/3`
 
-Along with the appropriate HTTP Status Code response, returns the json prediction of each hour and the corresponding predicted number of logins.  
-
-Example response for predicting 1 day, includes 200 OK HTTP status code to indicate a successful request along with each hour and predicted number of logins:  
+Along with the appropriate HTTP Status Code response, returns the json prediction of each hour that was updated to the database.  
+Example response for updating 1 day's predictions, includes 201 CREATED HTTP status code to indicate a successful update along with each hour and predicted number of logins:  
 ```
-HTTP/1.0 200 OK
+HTTP/1.0 201 CREATED
 Content-Type: application/json
-Content-Length: 956
+Content-Length: 957
 Server: Werkzeug/0.9.6 Python/2.7.7
-Date: Tue, 26 Aug 2014 03:38:17 GMT
+Date: Mon, 01 Sep 2014 22:35:10 GMT
 
 {
   "2012-05-01T00": 18.566893281115636, 
   "2012-05-01T01": 21.83782416617116, 
-  "2012-05-01T02": 20.089679952815562, 
-  "2012-05-01T03": 13.785368973761344, 
-  "2012-05-01T04": 7.0944064312166972, 
-  "2012-05-01T05": 5.494589784367145, 
-  "2012-05-01T06": 2.3059376203966222, 
-  "2012-05-01T07": 1.9590624596839912, 
-  "2012-05-01T08": 2.894597582713657, 
-  "2012-05-01T09": 5.3603431557477466, 
-  "2012-05-01T10": 6.6714987646868691, 
-  "2012-05-01T11": 11.553181105512023, 
-  "2012-05-01T12": 14.139022063008474, 
-  "2012-05-01T13": 11.747732176778698, 
-  "2012-05-01T14": 12.1914484917473, 
-  "2012-05-01T15": 11.908294438109966, 
-  "2012-05-01T16": 12.120628596724213, 
-  "2012-05-01T17": 13.297554458789921, 
-  "2012-05-01T18": 14.806574168932737, 
-  "2012-05-01T19": 15.238315443322787, 
-  "2012-05-01T20": 15.310212745663573, 
-  "2012-05-01T21": 16.617359421977017, 
+  ...
   "2012-05-01T22": 22.846377369169147, 
   "2012-05-01T23": 23.125764596138033
 }
 ```
 
+##REST API - GET Demand Predictions
+Use the GET request to get Client Login Predictions currently in the database.  
+######Resource URL:  
+`http://localhost:5000/api/predict`
+
+By default, will return all predictions in the database:  
+`curl -i http://localhost:5000/api/predict`
+
+To get a specific number of days (i.e. 3 days of predictions):  
+`curl -i http://localhost:5000/api/predict/3`
+
+Along with the appropriate HTTP Status Code response, returns the json prediction of each hour and the corresponding predicted number of logins.  
+
 ##Web Interface
 Using the lightweight Flask framework, I built a simple web interface with more functionality than offered through the command line API.  
+
+![alt tag](https://raw.githubusercontent.com/cminnich/Demand_Prediction/master/WebInterface.png "Web Interface")
 
 Without logging in, the currently loaded historical data and future predictions will be displayed.  
 
